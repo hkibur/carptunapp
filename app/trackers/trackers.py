@@ -16,13 +16,17 @@ class Tracker(object):
             self.run(self.delta_acc)
             self.delta_acc = 0
 
+    def run(self, delta):
+        raise NotImplementedError
+
 class KeyboardWpmTracker(Tracker):
     def __init__(self, app_inst, time_frame, smoothing, rate):
         Tracker.__init__(self)
         self.time_frame = time_frame
         self.smoothing = smoothing
         self.rate = rate
-        self.thresh = 70
+        self.wpm_thresh = 70
+        self.area_thresh = 15000
 
         self.char_buffer = []
         self.smoothing_buffer = bufferutil.MovingAverageBuffer(smoothing / rate)
@@ -30,6 +34,7 @@ class KeyboardWpmTracker(Tracker):
 
         app_inst.register_keypress_callback(self.keypress)
         app_inst.register_run_callback(self.pre_run, rate)
+        app_inst.register_check_callback(self.check_limit)
 
     def keypress(self, event):
         if len(event.name) == 1:
@@ -52,6 +57,12 @@ class KeyboardWpmTracker(Tracker):
         self.smoothing_buffer.add((words / delta) * 60.0)
         timestamp = delta + self.wpm_buffer[-1][0] if len(self.wpm_buffer) > 0 else delta
         self.wpm_buffer.append((timestamp, self.smoothing_buffer.get_average()))
+
+    def check_limit(self):
+        area = mathutil.graph_integral(self.wpm_buffer, self.wpm_thresh, 1, 1)
+        if area > self.area_thresh:
+            return ("Keyboard WPM Tracker", "WPM Integral %d exceeded: %d" % (self.area_thresh, area))
+        return None
 
 class MouseDistanceActivityTracker(Tracker):
     def __init__(self, app_inst, time_frame, smoothing, rate):

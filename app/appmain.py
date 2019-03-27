@@ -24,11 +24,16 @@ class CarpalTunnelApp(object):
 
         self.closing = False
         self.run_delta = None
+        self.check_delta = None
+        self.check_delta_multiplier = 1
 
         self.run_thread = None
+        self.check_thread = None
+
         self.run_callbacks = []
         self.keypress_callbacks = []
         self.mouse_callbacks = []
+        self.check_callbacks = []
 
     def run_worker(self):
         while not self.closing:
@@ -38,7 +43,26 @@ class CarpalTunnelApp(object):
 
     def register_run_callback(self, callback, delta):
         self.run_delta = delta if self.run_delta is None else mathutil.gcd(self.run_delta, delta)
+        self.check_delta = self.run_delta * self.check_delta_multiplier
         self.run_callbacks.append(callback)
+
+    def check_worker(self):
+        while not self.closing:
+            for i, tup in enumerate(self.check_callbacks):
+                resp = tup[0]()
+                flagged = tup[1]
+                if resp is not None and not flagged:
+                    self.toaster.show_toast(resp[0], resp[1], duration = 5, threaded = True)
+                    flagged = True
+                elif resp is None and tup[1]:
+                    flagged = False
+                else:
+                    continue
+                self.check_callbacks[i] = (tup[0], flagged)
+            time.sleep(self.check_delta)
+
+    def register_check_callback(self, callback):
+        self.check_callbacks.append((callback, False))
 
     def on_keypress(self, event):
         for callback in self.keypress_callbacks:
@@ -60,6 +84,8 @@ class CarpalTunnelApp(object):
         mouse.hook(self.on_mouse)
         self.run_thread = threading.Thread(target = self.run_worker)
         self.run_thread.start()
+        self.check_thread = threading.Thread(target = self.check_worker)
+        self.check_thread.start()
 
     def close(self):
         self.closing = True
@@ -67,3 +93,5 @@ class CarpalTunnelApp(object):
         mouse.unhook_all()
         self.run_thread.join()
         self.run_thread = None
+        self.check_thread.join()
+        self.check_thread = None

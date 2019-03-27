@@ -83,7 +83,7 @@ class CarpalTunnelGui(tk.Frame):
         tk.Button(header_cont, text = "Update Graphs", command = self.update_graphs).pack(side = tk.LEFT)
 
         self.wpm_tracker = trackers.KeyboardWpmTracker(app_inst = inst, time_frame = 120, smoothing = 2, rate = 2)
-        self.keyboard_graph = LineGraph(self, self.wpm_tracker.wpm_buffer, thresh = self.wpm_tracker.thresh, text = "Keyboard WPM")
+        self.keyboard_graph = LineGraph(self, self.wpm_tracker.wpm_buffer, thresh = self.wpm_tracker.wpm_thresh, text = "Keyboard WPM")
         self.keyboard_graph.pack()
 
         self.mousemove_tracker = trackers.MouseDistanceActivityTracker(app_inst = inst, time_frame = 120, smoothing = 1, rate = 0.25)
