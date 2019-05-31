@@ -53,25 +53,22 @@ def packet_to_dict(raw, layout):
     bit_offset = 0
     byte_ind = 0
     for elm, bit_len in layout:
-        new_bit_offset = (bit_offset + bit_len) % 8
         val = bitslice(raw[byte_ind], max(8 - (bit_len + bit_offset), 0), 8 - bit_offset)
-        print elm, byte_ind, bit_offset
         bit_len -= 8 - bit_offset
         if bit_len <= 0:
             packet_dict[elm] = val
-            bit_offset = new_bit_offset
+            bit_offset = 8 + bit_len
             continue
-        while bit_len >= 8:
+        while bit_len > 8:
             byte_ind += 1
-            val << 8
+            val <<= 8
             val |= raw[byte_ind]
             bit_len -= 8
-            print "looped", byte_ind, val
         byte_ind += 1
-        val << max(bit_len, 0)
+        val <<= max(bit_len, 0)
         val |= bitslice(raw[byte_ind], 8 - bit_len, 8)
         packet_dict[elm] = val
-        bit_offset = new_bit_offset
+        bit_offset = bit_len
     return packet_dict
 
 def pop_packet(sock, layout_context):
