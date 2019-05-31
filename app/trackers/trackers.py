@@ -26,7 +26,7 @@ class KeyboardWpmTracker(Tracker):
         self.smoothing = smoothing
         self.rate = rate
         self.wpm_thresh = 70
-        self.area_thresh = 15000
+        self.area_thresh = 1500
 
         self.char_buffer = []
         self.smoothing_buffer = bufferutil.MovingAverageBuffer(smoothing / rate)
@@ -59,10 +59,34 @@ class KeyboardWpmTracker(Tracker):
         self.wpm_buffer.append((timestamp, self.smoothing_buffer.get_average()))
 
     def check_limit(self):
-        area = mathutil.graph_integral(self.wpm_buffer, self.wpm_thresh, 1, 1)
+        area = mathutil.graph_integral(self.wpm_buffer, self.wpm_thresh, 1, 0.5)
         if area > self.area_thresh:
             return ("Keyboard WPM Tracker", "WPM Integral %d exceeded: %d" % (self.area_thresh, area))
         return None
+
+class KeyboardCpmTracker(Tracker):
+    def __init__(self, app_inst, time_frame, smoothing, rate):
+        Tracker.__init__(self)
+        self.time_frame = time_frame
+        self.smoothing = smoothing
+        self.rate = rate
+        self.cpm_thresh = 70
+
+        self.smoothing_buffer = bufferutil.MovingAverageBuffer(smoothing / rate)
+        self.cpm_buffer = bufferutil.RingBuffer(time_frame / rate)
+        self.char_counter = 0
+
+        app_inst.register_keypress_callback(self.keypress)
+        app_inst.register_run_callback(self.run, rate)
+
+    def keypress(self, event):
+        self.char_counter += 1
+
+    def run(self, delta):
+        self.smoothing_buffer.add((self.char_counter / delta) * 60)
+        self.char_counter = 0
+        timestamp = delta + self.cpm_buffer[-1][0] if len(self.cpm_buffer) > 0 else delta
+        self.cpm_buffer.append((timestamp, self.smoothing_buffer.get_average()))
 
 class MouseDistanceActivityTracker(Tracker):
     def __init__(self, app_inst, time_frame, smoothing, rate):

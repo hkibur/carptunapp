@@ -2,6 +2,7 @@ from __future__ import division
 import Tkinter as tk
 import ttk
 import sys
+import socket
 
 import appmain
 import trackers
@@ -81,10 +82,15 @@ class CarpalTunnelGui(tk.Frame):
         self.status_label = tk.Label(header_cont, text = "Status: Closed")
         self.status_label.pack(side = tk.LEFT)
         tk.Button(header_cont, text = "Update Graphs", command = self.update_graphs).pack(side = tk.LEFT)
+        tk.Button(header_cont, text = "Login", command = self.login).pack(side = tk.LEFT)
 
-        self.wpm_tracker = trackers.KeyboardWpmTracker(app_inst = inst, time_frame = 120, smoothing = 2, rate = 2)
-        self.keyboard_graph = LineGraph(self, self.wpm_tracker.wpm_buffer, thresh = self.wpm_tracker.wpm_thresh, text = "Keyboard WPM")
+        self.cpm_tracker = trackers.KeyboardCpmTracker(app_inst = inst, time_frame = 120, smoothing = 5, rate = 0.5)
+        self.keyboard_graph = LineGraph(self, self.cpm_tracker.cpm_buffer, thresh = self.cpm_tracker.cpm_thresh, text = "Keyboard CPM")
         self.keyboard_graph.pack()
+
+        self.wpm_tracker = trackers.KeyboardWpmTracker(app_inst = inst, time_frame = 120, smoothing = 5, rate = 0.5)
+        self.keyboard_wpm_graph = LineGraph(self, self.wpm_tracker.wpm_buffer, thresh = self.wpm_tracker.wpm_thresh, text = "Keyboard WPM")
+        self.keyboard_wpm_graph.pack()
 
         self.mousemove_tracker = trackers.MouseDistanceActivityTracker(app_inst = inst, time_frame = 120, smoothing = 1, rate = 0.25)
         self.mousemove_graph = LineGraph(self, self.mousemove_tracker.movement_buffer, thresh = 700, text = "Mouse Distance")
@@ -106,7 +112,21 @@ class CarpalTunnelGui(tk.Frame):
 
     def update_graphs(self):
         self.keyboard_graph.update_graph()
+        self.keyboard_wpm_graph.update_graph()
         self.mousemove_graph.update_graph()
+
+    def login(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(("localhost", 111))
+        frame_meta = 64 << 3
+        send_buf = bytearray(66)
+        send_buf[0] = frame_meta >> 8
+        send_buf[1] = frame_meta & 0xFF
+        send_buf[2:] = "john".ljust(64)
+        sock.sendall(send_buf)
+        next_frame = sock.recv(3)
+        print ord(next_frame)
+        sock.close()
 
 app = appmain.CarpalTunnelApp()
 

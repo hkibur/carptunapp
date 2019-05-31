@@ -22,7 +22,7 @@ class CarpalTunnelApp(object):
     def __init__(self):
         self.toaster = win10toast.ToastNotifier()
 
-        self.closing = False
+        self.closing = True
         self.run_delta = None
         self.check_delta = None
         self.check_delta_multiplier = 1

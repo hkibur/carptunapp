@@ -20,6 +20,7 @@ def graph_integral(points, thresh, x_weight, y_weight):
     total_area = 0
     prev_x = 0
     prev_y = 0
+    thresh *= y_weight
     for point in points:
         x, y = point
         x *= x_weight
